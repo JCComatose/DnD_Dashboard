@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DM Dashboard</title>
+<style>/*__STYLES__*/</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="btn icon mobile-only" id="btnSide" title="Menu"></button>
+    <div class="brand"><div class="dot"></div><span id="brandName">DM Dashboard</span></div>
+    <span class="player-banner">Player view</span>
+    <button class="btn search-trigger" id="btnSearch" title="Search everything (Ctrl+K)"></button>
+    <div class="spacer"></div>
+    <div class="nowplaying" id="nowPlaying"></div>
+    <button class="btn icon" id="btnStopAll" title="Stop all sound"></button>
+    <button class="btn icon" id="btnPlayer" title="Player view: hide DM secrets (Ctrl+.)"></button>
+    <button class="btn icon" id="btnTheme" title="Light / dark"></button>
+    <button class="btn icon" id="btnRight" title="Show / hide combat, dice and notes panel"></button>
+    <button class="btn icon" id="btnHelp" title="Keyboard shortcuts (?)"></button>
+  </header>
+  <div class="main">
+    <aside class="sidebar">
+      <div class="campaign-row">
+        <select id="campaignSel" title="Campaign"></select>
+        <button class="btn icon" id="btnResync" title="Re-import this vault (pick up your latest edits)"></button>
+        <button class="btn icon" id="btnImport" title="Import an Obsidian vault"></button>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="tree-head"><input type="search" id="treeFilter" placeholder="Filter notes"></div>
+      <div class="tree" id="tree"></div>
+    </aside>
+    <section class="center">
+      <div class="tabs" id="tabs"></div>
+      <div class="view" id="view"></div>
+    </section>
+    <aside class="rightpanel">
+      <div class="rp-tabs" id="rpTabs"></div>
+      <div class="rp-body" id="rpBody"></div>
+    </aside>
+  </div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+<input type="file" id="dirInput" webkitdirectory directory multiple class="hidden">
+<script>/*__MARKED__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>
