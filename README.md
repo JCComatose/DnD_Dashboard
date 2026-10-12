@@ -44,4 +44,13 @@ The grid button in the top bar opens **Battle Map Maker** (`battlemap.html`). De
 `examples/Greenhorn Springs` is the original DM console's Weird West one-shot rebuilt as Obsidian notes, with placeholder tones for its sound cues. Import it to see every feature working.
 
 ## Developing
-Source is in `src/` (`index.html`, `styles.css`, `app.js`); `vendor/marked.min.js` is the Markdown parser (MIT). Run `node build.mjs` to produce `dist/DM Dashboard.html` and `dist/battlemap.html` (sources `battlemap.html`, `battlemap.css`, `battlemap.js`).
+Source is in `src/` (`index.html`, `styles.css`, `app.js`, and `vault.js`, which reads notes, links, sounds and stat blocks); `vendor/marked.min.js` is the Markdown parser (MIT). Run `node build.mjs` to produce `dist/DM Dashboard.html` and `dist/battlemap.html` (Battle Map Maker, from `battlemap.html`, `battlemap.css` and `battlemap.js`).
+
+## Checking a script before a session
+`node validate.mjs <script.md or folder> --vault <your vault folder>` reads scripts with the same parser the dashboard uses and reports anything that won't work at the table: a sound cue with no matching audio file, a script that won't show up in the Prompt book, missing notes, broken tables, unclosed callouts or code blocks, and stat blocks it can't read. It exits with an error when something is broken.
+
+- `--into Scripts` checks a script saved outside the vault as if it were in the vault's `Scripts` folder.
+- `--sounds --vault <folder>` lists every sound in the vault by channel, with the exact `[[name]]` to link it.
+- `--strict` fails on warnings too.
+
+The vault is found automatically when a folder above the script contains `.obsidian`.

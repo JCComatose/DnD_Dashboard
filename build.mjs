@@ -1,4 +1,4 @@
-// Inlines styles, marked and the app into one offline HTML file per page.
+// Inlines styles, marked, the vault reader and the app into one offline HTML file per page.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 const here = new URL('.', import.meta.url);
 const read = (p) => readFileSync(new URL(p, here), 'utf8');
@@ -7,6 +7,7 @@ const build = (html, css, js, out) => {
   const page = read(html)
     .replace('/*__STYLES__*/', () => read(css))
     .replace('/*__MARKED__*/', () => read('vendor/marked.min.js'))
+    .replace('/*__VAULT__*/', () => read('src/vault.js'))
     .replace('/*__APP__*/', () => read(js));
   writeFileSync(new URL('dist/' + out, here), page);
   console.log('built dist/' + out, page.length, 'bytes');
