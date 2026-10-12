@@ -685,6 +685,33 @@ function exportPng() {
   img.onerror = () => toast('Could not render the PNG in this browser.');
   img.src = url;
 }
+// Player screen: the dashboard opened with ?screen, on a projector. It listens on a BroadcastChannel,
+// so this page can send it the current map without going through the dashboard.
+const Players = {
+  ch: typeof BroadcastChannel === 'function' ? new BroadcastChannel('dm-dashboard-screen') : null,
+  live: false, pending: null,
+  init() {
+    if (!this.ch) return;
+    this.ch.onmessage = (e) => {
+      const m = e.data || {};
+      if (m.type === 'here' || m.type === 'hello') { this.live = true; if (this.pending) { this.ch.postMessage(this.pending); this.pending = null; } }
+      else if (m.type === 'bye') this.live = false;
+      $('#btnPlayers').classList.toggle('on', this.live);
+    };
+    this.ch.postMessage({ type: 'ping' });
+  },
+  url() { const u = new URL(location.protocol === 'file:' ? 'DM Dashboard.html' : './', location.href); u.search = '?screen'; return u.href; },
+  show() {
+    if (!this.ch) { toast('This browser can’t drive the player screen. Try Chrome, Edge or Safari.'); return; }
+    const msg = { type: 'show', id: Date.now() + Math.random(), blob: new Blob([renderSvg(S.map, { ...S.opts, coords: false, px: 60 })], { type: 'image/svg+xml' }), title: S.map.name, fit: 'contain' };
+    if (this.live) { this.ch.postMessage(msg); toast('Sent to the player screen.'); return; }
+    // open it now, while the click still counts as a user gesture; it says hello once loaded
+    this.pending = msg;
+    const w = window.open(this.url(), 'dm-player-screen', 'popup,width=960,height=600');
+    if (!w) { this.pending = null; toast('The browser blocked the player screen window. Allow pop-ups for this page and try again.', 5000); return; }
+    toast('Opening the player screen. Drag it onto the projector and press F for full screen.', 5000);
+  },
+};
 function mapPoint(e) {
   const svg = $('#map svg'); const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
   const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y];
@@ -788,6 +815,8 @@ function init() {
   };
   $('#rememberKey').onchange = () => { if (!$('#rememberKey').checked) store.del('key'); };
 
+  $('#btnPlayers').onclick = () => Players.show();
+  Players.init();
   $('#btnPng').onclick = exportPng;
   $('#btnJson').onclick = () => download(new Blob([JSON.stringify(S.map, null, 1)], { type: 'application/json' }), `${fileBase()}.battlemap.json`);
   $('#btnOpen').onclick = () => $('#fileIn').click();

@@ -63,6 +63,7 @@ const ICONS = {
   grip: '<circle cx="9" cy="6" r="1" fill="currentColor"/><circle cx="15" cy="6" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="18" r="1" fill="currentColor"/><circle cx="15" cy="18" r="1" fill="currentColor"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   grid: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
+  screen: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
   heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>',
 };
 const icon = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${ICONS[n] || ''}</svg>`;
@@ -415,6 +416,7 @@ function postProcess(root, opts) {
   for (const img of $$('img', root)) {
     const src = img.getAttribute('src') || '';
     if (src && !/^(https?:|data:|blob:)/i.test(src)) { const p = resolve(decodeURIComponent(src)); if (p) img.src = urlFor(p); }
+    const wrap = h('span', { class: 'img-cast' }); img.replaceWith(wrap); wrap.append(img, castButton(img));
   }
   // note embeds
   const depth = opts.depth || 0;
@@ -662,6 +664,180 @@ function soundsBy(ch) {
   return [...S.files.values()].filter((f) => f.kind === 'audio' && (!ch || channelOf(f.path) === ch));
 }
 
+/* ================================================================ player screen
+   A second window (opened with ?screen) that the DM drags onto the projector and makes full screen.
+   It only ever shows what the DM sends it, so nothing DM-only can leak onto it. Pages talk over a
+   BroadcastChannel, so the Battle Map Maker (same site) can send maps to it too: post
+   { type: 'show', id, blob, title } on SCREEN_CHANNEL, where blob is any image (an SVG map works). */
+const SCREEN_CHANNEL = 'dm-dashboard-screen';
+const Screen = {
+  ch: 'BroadcastChannel' in window ? new BroadcastChannel(SCREEN_CHANNEL) : null,
+  win: null,
+  live: false, // a screen window has answered
+  cur: null, // { blob, url, title }
+  blank: false,
+  init() {
+    if (!this.ch) return;
+    this.ch.onmessage = (e) => {
+      const m = e.data || {};
+      if (m.type === 'hello') { this.live = true; if (this.opening) this.sync(); this.opening = false; this.changed(); }
+      else if (m.type === 'show' && m.blob) { this.set(m.blob, m.title, m.id); this.blank = false; this.changed(); } // sent by another page
+      else if (m.type === 'blank') { this.blank = true; this.changed(); }
+      else if (m.type === 'here') { // a screen survived a dashboard reload, or another page changed it
+        this.live = true; this.blank = !!m.blank;
+        if (m.blob && this.cur?.id !== m.id) this.set(m.blob, m.title, m.id);
+        this.changed();
+      } else if (m.type === 'bye') { this.live = false; this.changed(); }
+    };
+    this.post({ type: 'ping' });
+  },
+  post(m) { try { this.ch?.postMessage(m); } catch (err) { console.warn('player screen', err); } },
+  set(blob, title, id) {
+    if (this.cur?.url) URL.revokeObjectURL(this.cur.url);
+    this.cur = { blob, title: title || '', url: URL.createObjectURL(blob), id: id || Date.now() + Math.random() };
+  },
+  url() { const u = new URL(location.href); u.hash = ''; u.search = '?screen'; return u.href; },
+  open() {
+    if (!this.ch) { toast('This browser can’t drive a second screen. Try Chrome, Edge or Safari.'); return; }
+    if (this.win && !this.win.closed) { this.win.focus(); return; }
+    this.win = window.open(this.url(), 'dm-player-screen', 'popup,width=960,height=600');
+    this.opening = true; // the new screen says hello once it loads; answer with what to show
+    if (!this.win) { toast('The browser blocked the player screen window. Allow pop-ups for this page and try again.', 5000); return; }
+    this.place();
+  },
+  // Chrome and Edge can put the window straight onto the other display once you allow "window management".
+  async place() {
+    if (!('getScreenDetails' in window)) return;
+    try {
+      const d = await window.getScreenDetails();
+      const other = d.screens.find((s) => s !== d.currentScreen);
+      if (other && this.win && !this.win.closed) { this.win.moveTo(other.availLeft, other.availTop); this.win.resizeTo(other.availWidth, other.availHeight); }
+    } catch { /* permission declined: the DM drags the window over instead */ }
+  },
+  close() { if (this.win && !this.win.closed) this.win.close(); else this.post({ type: 'close' }); this.live = false; this.changed(); },
+  async show(src, title) {
+    if (!this.live) this.open(); // open first, while the click still counts as a user gesture
+    let blob = src;
+    if (!(src instanceof Blob)) {
+      try { blob = await (await fetch(src)).blob(); } catch { toast('Couldn’t load that image.'); return; }
+    }
+    title = (title || '').replace(/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i, '');
+    this.set(blob, title); this.blank = false;
+    this.sync(); this.changed();
+    toast(this.live ? `On the player screen: ${title || 'image'}` : 'Opening the player screen…');
+  },
+  sync() {
+    if (this.cur && !this.blank) this.post({ type: 'show', id: this.cur.id, blob: this.cur.blob, title: this.cur.title, fit: S.settings.screenFit || 'contain', caption: !!S.settings.screenCaption });
+    else this.post({ type: 'blank' });
+  },
+  toggleBlank() { if (!this.cur) return; this.blank = !this.blank; this.sync(); this.changed(); },
+  changed() {
+    $('#btnScreen')?.classList.toggle('on', this.live);
+    if (S.settings.right && S.settings.rpTab === 'screen' && S.cid) renderRight();
+  },
+};
+function castButton(img, small) {
+  return h('button', { class: 'btn small cast', title: 'Show on the player screen', html: icon('screen') + (small ? '' : ' Show players'),
+    onclick: (e) => { e.preventDefault(); e.stopPropagation(); Screen.show(img.src, img.alt || ''); } });
+}
+function lightbox(img) {
+  const close = overlay(h('div', { class: 'lightbox' }, h('img', { src: img.src, alt: img.alt }),
+    h('div', { class: 'row-flex' }, h('span', { class: 'muted' }, img.alt),
+      h('button', { class: 'btn', html: icon('screen') + ' Show on player screen', onclick: () => { Screen.show(img.src, img.alt || ''); close(); } }))));
+}
+function renderScreenPanel(body) {
+  const live = Screen.live;
+  body.append(h('div', { class: 'row-flex', style: { marginBottom: '10px' } },
+    live ? h('button', { class: 'btn small', onclick: () => Screen.open(), html: icon('screen') + ' Bring forward' })
+      : h('button', { class: 'btn small primary', onclick: () => Screen.open(), html: icon('screen') + ' Open player screen' }),
+    live ? h('button', { class: 'btn small', onclick: () => Screen.close() }, 'Close it') : null));
+  if (!live) body.append(h('p', { class: 'muted scr-help' }, 'Opens a window for the projector. Drag it onto that display, then click it once (or press F) to go full screen. Players only see what you send it.'));
+  const prev = h('div', { class: 'scr-preview' + (Screen.blank ? ' blank' : '') + (S.settings.screenFit === 'cover' ? ' cover' : '') },
+    Screen.cur ? h('img', { src: Screen.cur.url, alt: '' }) : h('span', { class: 'muted' }, 'Nothing on screen'));
+  body.append(h('div', { class: 'section-title', style: { marginTop: '4px' } }, 'Showing', h('span', { class: 'line' })), prev,
+    Screen.cur ? h('div', { class: 'muted scr-title' }, (Screen.blank ? 'Blanked: ' : '') + (Screen.cur.title || 'Image')) : null,
+    h('div', { class: 'row-flex', style: { margin: '8px 0' } },
+      h('button', { class: 'btn small' + (Screen.blank ? ' on' : ''), disabled: !Screen.cur, title: 'Black out the screen without losing the image (B)', onclick: () => Screen.toggleBlank() }, Screen.blank ? 'Unblank' : 'Blank'),
+      h('button', { class: 'btn small', title: 'Fit shows the whole image; Fill crops to cover the screen', onclick: () => { S.settings.screenFit = S.settings.screenFit === 'cover' ? 'contain' : 'cover'; saveSettings(); Screen.sync(); Screen.changed(); } }, S.settings.screenFit === 'cover' ? 'Fill' : 'Fit'),
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!S.settings.screenCaption, onchange: (e) => { S.settings.screenCaption = e.target.checked; saveSettings(); Screen.sync(); } }), ' Caption'),
+      h('button', { class: 'btn small', title: 'Show an image or battle map from your computer', onclick: () => pick.click() }, 'From file…')));
+  const pick = h('input', { type: 'file', accept: 'image/*', class: 'hidden', onchange: () => { const f = pick.files[0]; if (f) Screen.show(f, stripExt(f.name)); } });
+  body.append(pick);
+  body.ondragover = (e) => { if ([...e.dataTransfer.items].some((i) => i.kind === 'file')) { e.preventDefault(); body.classList.add('drop'); } };
+  body.ondragleave = () => body.classList.remove('drop');
+  body.ondrop = (e) => { body.classList.remove('drop'); const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/')); if (f) { e.preventDefault(); Screen.show(f, stripExt(f.name)); } };
+  const imgs = [...S.files.values()].filter((f) => f.kind === 'image').sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+  body.append(h('div', { class: 'section-title' }, 'Vault images', h('span', { class: 'line' })));
+  if (!imgs.length) { body.append(h('p', { class: 'muted scr-help' }, 'No images in this vault yet. Drop one here, or use the screen button on any picture in a note.')); return; }
+  const filter = h('input', { type: 'search', placeholder: 'Filter images', style: { width: '100%', marginBottom: '8px' } });
+  const grid = h('div', { class: 'scr-grid' });
+  const draw = () => {
+    const q = filter.value.trim().toLowerCase(); grid.innerHTML = '';
+    for (const f of imgs) {
+      const name = stripExt(baseName(f.path));
+      if (q && !f.path.toLowerCase().includes(q)) continue;
+      grid.append(h('button', { class: 'scr-thumb' + (Screen.cur?.title === name ? ' on' : ''), title: f.path, onclick: () => Screen.show(urlFor(f.path), name) },
+        h('img', { src: urlFor(f.path), alt: '', loading: 'lazy' }), h('span', {}, name)));
+    }
+  };
+  filter.addEventListener('input', draw);
+  body.append(filter, grid); draw();
+}
+// The ?screen page itself: black stage, crossfades between images, no DM chrome at all.
+function screenMode() {
+  document.title = 'Player screen';
+  document.documentElement.dataset.theme = 'dark';
+  document.body.className = 'screen-mode empty';
+  document.body.innerHTML = '';
+  const stage = h('div', { class: 'scr-stage' });
+  const cap = h('div', { class: 'scr-cap' });
+  const hint = h('div', { class: 'scr-hint' }, h('b', {}, 'Player screen'),
+    h('div', {}, 'Drag this window onto the projector, then click anywhere or press F for full screen.'),
+    h('div', { class: 'muted' }, 'Pick what to show from the Screen tab in the dashboard.'));
+  document.body.append(stage, cap, hint);
+  const ch = 'BroadcastChannel' in window ? new BroadcastChannel(SCREEN_CHANNEL) : null;
+  if (!ch) { hint.lastChild.textContent = 'This browser can’t receive images from the dashboard.'; return; }
+  let cur = null, blank = false;
+  const show = (m) => {
+    blank = false;
+    const url = URL.createObjectURL(m.blob);
+    const img = h('img', { src: url, alt: '', style: { objectFit: m.fit === 'cover' ? 'cover' : 'contain' } });
+    const prev = [...stage.children];
+    const reveal = () => {
+      stage.append(img); requestAnimationFrame(() => img.classList.add('on'));
+      for (const p of prev) { p.classList.remove('on'); setTimeout(() => { URL.revokeObjectURL(p.src); p.remove(); }, 700); }
+    };
+    if (cur && m.id != null && cur.id === m.id) { URL.revokeObjectURL(url); for (const p of prev) p.style.objectFit = img.style.objectFit; }
+    else img.decode().then(reveal, reveal);
+    cur = m;
+    cap.textContent = m.caption ? m.title || '' : '';
+    document.body.classList.remove('empty', 'blank');
+  };
+  ch.onmessage = (e) => {
+    const m = e.data || {};
+    if (m.type === 'show' && m.blob) show(m);
+    else if (m.type === 'blank') { blank = true; document.body.classList.add('blank'); }
+    else if (m.type === 'ping') ch.postMessage({ type: 'here', id: cur?.id, blob: cur?.blob, title: cur?.title, blank });
+    else if (m.type === 'close') window.close();
+  };
+  ch.postMessage({ type: 'hello' });
+  addEventListener('pagehide', () => ch.postMessage({ type: 'bye' }));
+  const fs = () => {
+    const d = document.documentElement;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d)?.catch?.(() => {});
+  };
+  addEventListener('click', fs);
+  addEventListener('keydown', (e) => {
+    if (e.key === 'f' || e.key === 'F') fs();
+    else if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
+  });
+  const onFs = () => document.body.classList.toggle('fs', !!(document.fullscreenElement || document.webkitFullscreenElement));
+  document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
+  let idle; const wake = () => { document.body.classList.remove('idle'); clearTimeout(idle); idle = setTimeout(() => document.body.classList.add('idle'), 2500); };
+  addEventListener('mousemove', wake); wake();
+}
+
 /* ================================================================ UI: toasts, overlays */
 function toast(html, ms = 3000, raw = false) {
   const t = h('div', { class: 'toast', html: raw ? html : esc(html) });
@@ -759,7 +935,7 @@ function openSwitcher(initial = '') {
   update(); input.focus();
 }
 function showHelp() {
-  const rows = [['Ctrl+K or /', 'Search notes, sounds and text'], ['Ctrl+.', 'Player view on/off (hides DM secrets)'], ['N', 'Next turn in combat'], ['Space (on Sounds page)', 'Stop all sound'], ['Alt+← / Alt+→', 'Back / forward'], ['Esc', 'Close overlays'], ['?', 'This help']];
+  const rows = [['Ctrl+K or /', 'Search notes, sounds and text'], ['Ctrl+.', 'Player view on/off (hides DM secrets)'], ['N', 'Next turn in combat'], ['B', 'Blank / unblank the player screen'], ['Space (on Sounds page)', 'Stop all sound'], ['Alt+← / Alt+→', 'Back / forward'], ['Esc', 'Close overlays'], ['?', 'This help']];
   overlay(h('div', { class: 'palette', style: { padding: '16px 20px' } }, h('h3', { style: { marginTop: 0 } }, 'Keyboard shortcuts'),
     h('table', { style: { width: '100%' } }, rows.map(([k, v]) => h('tr', {}, h('td', { style: { padding: '4px 12px 4px 0' } }, h('kbd', {}, k)), h('td', {}, v))))));
 }
@@ -1285,7 +1461,7 @@ function renderBook(path, anchor) {
     while (el && !heads.includes(el)) { imgs.push(...(el.tagName === 'IMG' ? [el] : $$('img', el))); el = el.nextElementSibling; }
     const it = h('div', { class: 'bn-item' },
       h('button', { class: 'bn-btn', onclick: () => { hd.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActive(hd); } }, hd.textContent),
-      imgs.length ? h('div', { class: 'bn-thumbs' }, imgs.map((im) => h('img', { src: im.src, alt: im.alt, onclick: () => overlay(h('div', { class: 'lightbox' }, h('img', { src: im.src, alt: im.alt }), h('div', { class: 'muted' }, im.alt))) }))) : null);
+      imgs.length ? h('div', { class: 'bn-thumbs' }, imgs.map((im) => h('span', { class: 'img-cast' }, h('img', { src: im.src, alt: im.alt, onclick: () => lightbox(im) }), castButton(im, true)))) : null);
     items.set(hd, it); nav.append(it);
   });
   const setActive = (hd) => { for (const [k, v] of items) v.classList.toggle('active', k === hd); };
@@ -1321,7 +1497,7 @@ function renderRight() {
   const tabs = $('#rpTabs'); const body = $('#rpBody');
   tabs.innerHTML = ''; body.innerHTML = '';
   if (!S.cid) return;
-  for (const [k, ic, label] of [['peek', 'book', 'Note'], ['combat', 'swords', 'Combat'], ['sound', 'music', 'Sound'], ['dice', 'dice', 'Dice'], ['notes', 'note', 'Notes']]) {
+  for (const [k, ic, label] of [['peek', 'book', 'Note'], ['combat', 'swords', 'Combat'], ['sound', 'music', 'Sound'], ['dice', 'dice', 'Dice'], ['screen', 'screen', 'Screen'], ['notes', 'note', 'Notes']]) {
     const on = S.settings.rpTab === k;
     const badge = k === 'sound' && Audio_.tracks.size ? `<span class="rp-badge">${Audio_.tracks.size}</span>` : '';
     tabs.append(h('button', { class: on ? 'active' : '', title: label, onclick: () => openRight(k), html: icon(ic) + (on ? `<span>${label}</span>` : '') + badge }));
@@ -1331,6 +1507,7 @@ function renderRight() {
   if (t === 'sound') return renderMixer(body);
   if (t === 'dice') return renderDice(body);
   if (t === 'notes') return renderScratch(body);
+  if (t === 'screen') return renderScreenPanel(body);
   return renderCombat(body);
 }
 function openRight(tab) {
@@ -1510,6 +1687,8 @@ function bind() {
   $('#btnStopAll').innerHTML = icon('volx');
   $('#btnStopAll').onclick = () => Audio_.stopAll();
   $('#btnPlayer').onclick = togglePlayer;
+  $('#btnScreen').innerHTML = icon('screen');
+  $('#btnScreen').onclick = () => { Screen.open(); if (S.cid) openRight('screen'); };
   $('#btnTheme').onclick = () => { S.settings.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; saveSettings(); renderChrome(); };
   $('#btnRight').innerHTML = icon('panel');
   $('#btnRight').onclick = () => { if (window.matchMedia('(max-width: 820px)').matches) { document.body.classList.toggle('show-right'); return; } S.settings.right = !S.settings.right; saveSettings(); renderChrome(); };
@@ -1541,7 +1720,7 @@ function bind() {
       return;
     }
     const img = e.target.closest('.md img');
-    if (img && !e.target.closest('a')) { overlay(h('div', { class: 'lightbox' }, h('img', { src: img.src, alt: img.alt }), h('div', { class: 'muted' }, img.alt))); return; }
+    if (img && !e.target.closest('a')) { lightbox(img); return; }
     const snd = e.target.closest('[data-snd]');
     if (snd) { e.preventDefault(); Audio_.play(snd.dataset.snd); return; }
     const d = e.target.closest('[data-roll]');
@@ -1557,6 +1736,7 @@ function bind() {
     if (e.key === '/') { e.preventDefault(); if (S.cid) openSwitcher(); }
     else if (e.key === '?') showHelp();
     else if (e.key === 'n' || e.key === 'N') { if (S.cid && combat().list.length) nextTurn(1); }
+    else if (e.key === 'b' || e.key === 'B') Screen.toggleBlank();
     else if (e.key === ' ' && (location.hash || '').startsWith('#/sounds')) { e.preventDefault(); Audio_.stopAll(); }
     else if (e.key === 'Enter' && e.target.matches?.('[data-snd],[data-roll]')) e.target.click();
   });
@@ -1569,7 +1749,9 @@ function togglePlayer() {
 
 /* ================================================================ boot */
 async function boot() {
+  if (new URLSearchParams(location.search).has('screen')) return screenMode();
   bind();
+  Screen.init();
   await DB.open();
   S.campaigns = await DB.campaigns();
   S.campaigns.sort((a, b) => a.name.localeCompare(b.name));

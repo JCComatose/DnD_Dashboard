@@ -404,3 +404,32 @@ body.player-safe .callout.secret, body.player-safe .dm-only-block { display: non
 .lightbox { display: grid; gap: 8px; justify-items: center; max-width: 92vw; }
 .lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 8px; box-shadow: var(--shadow); }
 @media (max-width: 1100px) { .book-grid { grid-template-columns: 1fr; } .book-nav { position: static; max-height: none; display: flex; flex-wrap: wrap; } .bn-item { flex: none; } .bn-thumbs { display: none !important; } }
+
+/* player screen: cast buttons on images, the Screen tab, and the ?screen window */
+.img-cast { position: relative; display: inline-block; max-width: 100%; }
+.img-cast .cast { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity .15s; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.img-cast:hover .cast, .img-cast .cast:focus-visible { opacity: 1; }
+.bn-thumbs .img-cast .cast { top: 1px; right: 1px; padding: 1px 3px; }
+.bn-thumbs .img-cast .cast .i { width: 12px; height: 12px; }
+.scr-help { font-size: 13px; margin: 0 0 10px; }
+.scr-preview { aspect-ratio: 16 / 9; background: #000; border-radius: 8px; border: 1px solid var(--border); display: grid; place-items: center; overflow: hidden; }
+.scr-preview img { width: 100%; height: 100%; object-fit: contain; }
+.scr-preview.cover img { object-fit: cover; }
+.scr-preview.blank img { opacity: .15; }
+.scr-title { font-size: 13px; margin-top: 4px; }
+.scr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.scr-thumb { display: grid; gap: 3px; padding: 4px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font: inherit; font-size: 11px; cursor: pointer; text-align: left; }
+.scr-thumb:hover, .scr-thumb.on { border-color: var(--accent); }
+.scr-thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; }
+.scr-thumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-body.drop { outline: 2px dashed var(--accent); outline-offset: -6px; }
+body.screen-mode { margin: 0; background: #000; overflow: hidden; height: 100vh; cursor: default; }
+body.screen-mode.idle { cursor: none; }
+.scr-stage { position: fixed; inset: 0; }
+.scr-stage img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .6s ease; }
+.scr-stage img.on { opacity: 1; }
+body.screen-mode.blank .scr-stage, body.screen-mode.blank .scr-cap { opacity: 0; transition: opacity .4s; }
+.scr-cap { position: fixed; left: 0; right: 0; bottom: 4vh; text-align: center; font-family: var(--serif); font-size: clamp(18px, 3vw, 40px); color: #fff; text-shadow: 0 2px 10px #000, 0 0 3px #000; pointer-events: none; }
+.scr-hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(34,31,43,.92); color: #ece7f3; border: 1px solid #383246; border-radius: 10px; padding: 10px 16px; font-size: 14px; text-align: center; display: grid; gap: 4px; transition: opacity .4s; }
+body.screen-mode.empty .scr-hint { top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+body.screen-mode.fs .scr-hint, body.screen-mode.idle:not(.empty) .scr-hint { opacity: 0; pointer-events: none; }
