@@ -679,7 +679,9 @@ const Screen = {
     if (!this.ch) return;
     this.ch.onmessage = (e) => {
       const m = e.data || {};
-      if (m.type === 'hello') { this.live = true; this.sync(); this.changed(); }
+      if (m.type === 'hello') { this.live = true; if (this.opening) this.sync(); this.opening = false; this.changed(); }
+      else if (m.type === 'show' && m.blob) { this.set(m.blob, m.title, m.id); this.blank = false; this.changed(); } // sent by another page
+      else if (m.type === 'blank') { this.blank = true; this.changed(); }
       else if (m.type === 'here') { // a screen survived a dashboard reload, or another page changed it
         this.live = true; this.blank = !!m.blank;
         if (m.blob && this.cur?.id !== m.id) this.set(m.blob, m.title, m.id);
@@ -698,6 +700,7 @@ const Screen = {
     if (!this.ch) { toast('This browser can’t drive a second screen. Try Chrome, Edge or Safari.'); return; }
     if (this.win && !this.win.closed) { this.win.focus(); return; }
     this.win = window.open(this.url(), 'dm-player-screen', 'popup,width=960,height=600');
+    this.opening = true; // the new screen says hello once it loads; answer with what to show
     if (!this.win) { toast('The browser blocked the player screen window. Allow pop-ups for this page and try again.', 5000); return; }
     this.place();
   },
