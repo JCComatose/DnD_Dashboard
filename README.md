@@ -37,6 +37,15 @@ You can import several vaults; switch between them from the dropdown at the top 
 - Right panel: **Note** (the side peek), **Combat** (initiative, HP, conditions, drag to reorder; press **N** for next turn), **Sound** (now playing: pause, loop and volume per track), **Dice** (advantage/disadvantage, `4d6kh3`, history) and **Notes** (a scratchpad that saves itself; copy it into your session note afterwards).
 - **Stop all sound**: the speaker button in the top bar.
 
+## Player screen (projector or second display)
+The monitor button in the top bar opens a **player screen**: a separate black window that shows only what you send it, so nothing DM-only can end up on it.
+
+1. Set the projector up as a separate display, not a mirror (on a Mac: System Settings → Displays, choose "Extended display" for the projector).
+2. Click the monitor button. Drag the new window onto the projector and click it once (or press **F**) to make it full screen. In Chrome or Edge it can ask to manage windows; allow it and the window opens on the projector by itself.
+3. Send pictures to it: hover any image in a note and click **Show players**, use the button in an image's enlarged view, pick from **Vault images** in the **Screen** tab, or choose **From file…** (or drop a file on that tab) for a battle map PNG saved anywhere.
+
+The Screen tab shows what players see, with **Blank** (also the **B** key) to black it out without losing the picture, **Fit/Fill**, and an optional caption. The screen keeps its picture if you reload the dashboard. Other pages on the same site can drive it too: post `{ type: 'show', id, blob, title }` on a `BroadcastChannel('dm-dashboard-screen')`, where `blob` is any image (an SVG works).
+
 ## Example vault
 `examples/Greenhorn Springs` is the original DM console's Weird West one-shot rebuilt as Obsidian notes, with placeholder tones for its sound cues. Import it to see every feature working.
 
