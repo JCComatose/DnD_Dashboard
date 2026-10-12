@@ -37,6 +37,9 @@ You can import several vaults; switch between them from the dropdown at the top 
 - Right panel: **Note** (the side peek), **Combat** (initiative, HP, conditions, drag to reorder; press **N** for next turn), **Sound** (now playing: pause, loop and volume per track), **Dice** (advantage/disadvantage, `4d6kh3`, history) and **Notes** (a scratchpad that saves itself; copy it into your session note afterwards).
 - **Stop all sound**: the speaker button in the top bar.
 
+## Battle maps
+The grid button in the top bar opens **Battle Map Maker** (`battlemap.html`). Describe a scene and press **Generate** for an instant offline layout (it reads keywords like tavern, cave, crypt, ruins, town, camp, road, river, bridge, pond, snow, desert, swamp, night), or use **Design it with Claude** for a map that follows the whole description: copy the prompt into Claude and paste the JSON reply back, or paste an Anthropic API key to do it in one click. Every map sits on an exact 5 ft grid. Touch it up with Paint, Place, Door, Label and Erase, then export a PNG at 70, 100 or 140 px per square for Roll20, Foundry or a TV, or save the `.battlemap.json` to edit later. **Show players** sends the map straight to the player screen (below), opening it if it isn't open yet.
+
 ## Player screen (projector or second display)
 The monitor button in the top bar opens a **player screen**: a separate black window that shows only what you send it, so nothing DM-only can end up on it.
 
@@ -50,7 +53,7 @@ The Screen tab shows what players see, with **Blank** (also the **B** key) to bl
 `examples/Greenhorn Springs` is the original DM console's Weird West one-shot rebuilt as Obsidian notes, with placeholder tones for its sound cues. Import it to see every feature working.
 
 ## Developing
-Source is in `src/` (`index.html`, `styles.css`, `app.js`, and `vault.js`, which reads notes, links, sounds and stat blocks); `vendor/marked.min.js` is the Markdown parser (MIT). Run `node build.mjs` to produce `dist/DM Dashboard.html`.
+Source is in `src/` (`index.html`, `styles.css`, `app.js`, and `vault.js`, which reads notes, links, sounds and stat blocks); `vendor/marked.min.js` is the Markdown parser (MIT). Run `node build.mjs` to produce `dist/DM Dashboard.html` and `dist/battlemap.html` (Battle Map Maker, from `battlemap.html`, `battlemap.css` and `battlemap.js`).
 
 ## Checking a script before a session
 `node validate.mjs <script.md or folder> --vault <your vault folder>` reads scripts with the same parser the dashboard uses and reports anything that won't work at the table: a sound cue with no matching audio file, a script that won't show up in the Prompt book, missing notes, broken tables, unclosed callouts or code blocks, and stat blocks it can't read. It exits with an error when something is broken.

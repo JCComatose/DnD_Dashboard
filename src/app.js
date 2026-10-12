@@ -62,6 +62,7 @@ const ICONS = {
   repeat: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   grip: '<circle cx="9" cy="6" r="1" fill="currentColor"/><circle cx="15" cy="6" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="18" r="1" fill="currentColor"/><circle cx="15" cy="18" r="1" fill="currentColor"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  grid: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
   screen: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
   heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>',
 };
@@ -1691,6 +1692,7 @@ function bind() {
   $('#btnTheme').onclick = () => { S.settings.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; saveSettings(); renderChrome(); };
   $('#btnRight').innerHTML = icon('panel');
   $('#btnRight').onclick = () => { if (window.matchMedia('(max-width: 820px)').matches) { document.body.classList.toggle('show-right'); return; } S.settings.right = !S.settings.right; saveSettings(); renderChrome(); };
+  $('#btnMaps').innerHTML = icon('grid');
   $('#btnHelp').innerHTML = icon('help');
   $('#btnHelp').onclick = showHelp;
   $('#btnSide').innerHTML = icon('menu');
