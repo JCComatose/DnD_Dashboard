@@ -26,6 +26,7 @@ jobs:
         run: |
           mkdir -p site
           cp "dist/DM Dashboard.html" site/index.html
+          cp dist/battlemap.html site/battlemap.html
           cp README.md site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Map Maker</title>
+<style>/*__STYLES__*/</style>
+</head>
+<body>
+<header class="bar">
+  <a class="back" id="backLink" href="./">&larr; DM Dashboard</a>
+  <h1>Battle Map Maker</h1>
+  <div class="spacer"></div>
+  <span class="title" id="mapTitle"></span>
+  <span class="meta" id="mapMeta"></span>
+</header>
+<div class="layout">
+  <aside class="panel">
+    <section>
+      <label class="lbl" for="desc">Describe the scene</label>
+      <textarea id="desc" rows="4" placeholder="e.g. A ruined temple in a dense jungle at night, with a pool and collapsed pillars"></textarea>
+      <div class="row">
+        <select id="size" title="Map size">
+          <option value="small">Small 20×15</option>
+          <option value="medium">Medium 30×20</option>
+          <option value="large">Large 40×28</option>
+        </select>
+        <button class="btn primary" id="btnGen">Generate</button>
+        <button class="btn" id="btnReroll" title="Same description, new layout">Reroll</button>
+      </div>
+      <div class="examples">
+        <button class="chip" data-example="Forest road ambush at dusk, a merchant wagon stopped by a fallen log, a stream and a bridge">Road ambush</button>
+        <button class="chip" data-example="Crowded frontier saloon with a long bar and a kitchen out back">Saloon</button>
+        <button class="chip" data-example="Wendigo den: a cave with a pool, bones everywhere">Cave den</button>
+        <button class="chip" data-example="Old crypt beneath a temple, rows of sarcophagi">Crypt</button>
+        <button class="chip" data-example="Bandit camp in a snowy pine forest at night">Snowy camp</button>
+        <button class="chip" data-example="Village market square with a fountain">Market</button>
+        <button class="chip" data-example="Overgrown ruins in a dense forest with a pond">Ruins</button>
+        <button class="chip" data-example="Misty swamp with a rotting boardwalk trail">Swamp</button>
+      </div>
+      <p class="hint">Generate runs offline and is free: it reads keywords (tavern, cave, crypt, ruins, town, camp, road, river, bridge, pond, snow, desert, swamp, night…) and builds a layout from them.</p>
+    </section>
+
+    <details class="box" id="claudeBox" open>
+      <summary>Design it with Claude</summary>
+      <p class="hint">Claude follows the whole description, not just keywords, and lays out cover and chokepoints. Two ways:</p>
+      <ol class="steps">
+        <li><button class="btn" id="btnCopyPrompt">Copy prompt</button> and paste it into Claude, then paste the JSON reply here:</li>
+      </ol>
+      <textarea id="pasteJson" rows="3" placeholder="Paste Claude's JSON reply"></textarea>
+      <button class="btn" id="btnPasteApply">Load reply</button>
+      <div class="sep">or with your own API key (billed to your Anthropic account)</div>
+      <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
+      <div class="row">
+        <select id="model" title="Model">
+          <option value="claude-opus-5-5">Opus 5.5 (best)</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5</option>
+          <option value="claude-haiku-5-5">Haiku 5.5 (cheapest)</option>
+        </select>
+        <label class="check"><input type="checkbox" id="rememberKey"> Remember</label>
+      </div>
+      <button class="btn primary wide" id="btnAsk">Generate with Claude</button>
+    </details>
+
+    <section>
+      <div class="lbl">Show</div>
+      <div class="row wrap">
+        <label class="check"><input type="checkbox" id="opt-grid"> Grid</label>
+        <label class="check"><input type="checkbox" id="opt-coords"> Coordinates</label>
+        <label class="check"><input type="checkbox" id="opt-lighting"> Lighting</label>
+      </div>
+      <label class="lbl" for="zoom">Zoom</label>
+      <input type="range" id="zoom" min="0" max="80" step="2" title="Left end fits the window">
+    </section>
+
+    <section>
+      <div class="lbl">Export</div>
+      <div class="row">
+        <select id="pngPx" title="Pixels per square">
+          <option value="70">70 px/square (Roll20)</option>
+          <option value="100" selected>100 px/square (Foundry)</option>
+          <option value="140">140 px/square (print/TV)</option>
+        </select>
+        <button class="btn" id="btnPng">PNG</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnJson">Save map file</button>
+        <button class="btn" id="btnOpen">Open map file</button>
+        <input type="file" id="fileIn" accept=".json,application/json" hidden>
+      </div>
+    </section>
+
+    <details class="box" id="jsonBox">
+      <summary>Map JSON</summary>
+      <textarea id="jsonText" rows="12" spellcheck="false"></textarea>
+      <button class="btn" id="btnJsonApply">Apply edits</button>
+    </details>
+  </aside>
+  <main class="stage">
+    <div class="toolbar">
+      <button class="btn" data-tool="paint" title="Paint terrain by dragging">Paint</button>
+      <button class="btn" data-tool="place" title="Click to place an object">Place</button>
+      <button class="btn" data-tool="door" title="Click a grid line to add a door">Door</button>
+      <button class="btn" data-tool="label" title="Click to add a label">Label</button>
+      <button class="btn" data-tool="erase" title="Click an object, door or painted spot to remove it">Erase</button>
+      <span id="paintOpts" hidden><select id="brushTerrain"></select> <label class="check">Brush <input type="range" id="brushSize" min="0.5" max="4" step="0.5" value="1.5"></label></span>
+      <span id="placeOpts" hidden><select id="placeType"></select> <select id="placeRot" title="Rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></span>
+      <div class="spacer"></div>
+      <button class="btn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+    </div>
+    <div class="mapwrap" id="mapwrap"><div id="map"></div></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>/*__APP__*/</script>
+</body>
+</html>
