@@ -74,6 +74,7 @@ const TYPE_BY_FOLDER = [
 const SECRET_CALLOUTS = new Set(['secret', 'dm', 'dm-only', 'dmonly', 'gm', 'gm-only', 'spoiler', 'hidden']);
 const READ_CALLOUTS = new Set(['read-aloud', 'readaloud', 'read', 'script', 'boxed', 'boxed-text', 'narrate', 'narration', 'say', 'speech', 'monologue']);
 
+const ENCOUNTER_CALLOUTS = new Set(['encounter', 'enemies', 'combat', 'fight']);
 function asList(v) { return v == null || v === '' ? [] : Array.isArray(v) ? v : String(v).split(/[,\s]+/).filter(Boolean); }
 function parseNote(rec) {
   const { fm, body } = parseFrontmatter(rec.text || '');
@@ -200,7 +201,7 @@ const STATBLOCK_RE = /```statblock[^\n]*\n([\s\S]*?)```/;
 
 return {
   stripExt, baseName, dirName, extOf, slug, EXT, kindOf,
-  splitFlow, yval, parseFrontmatter, TYPE_BY_FOLDER, SECRET_CALLOUTS, READ_CALLOUTS, asList, parseNote,
+  splitFlow, yval, parseFrontmatter, TYPE_BY_FOLDER, SECRET_CALLOUTS, READ_CALLOUTS, ENCOUNTER_CALLOUTS, asList, parseNote,
   splitTarget, resolveIn, indexRecords, channelOf, SOUND_KEYS, BOOK_TYPES, isBookish, parseYaml, STATBLOCK_RE,
 };
 })();

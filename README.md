@@ -22,7 +22,8 @@ You can import several vaults; switch between them from the dropdown at the top 
 | Notes in `Scripts/` (or `type: script`), or `> [!read-aloud] Title` callouts anywhere | Scripts page, plus **Present**: full screen, large text for reading aloud |
 | Session plans or adventures (`type: session`, `script` or `adventure`, or in `Sessions/`, `Scripts/`, `Adventures/`) with a `## heading` per scene | **Run as prompt book**: section list that follows your scroll, the party strip on top, and every `[[name]]` opens beside the text so you never lose your place. Images in a section show as thumbnails |
 | `[[Thunder.mp3|Thunder rolls]]` in the text | An inline sound cue with your own label |
-| A ```` ```statblock ```` code block (the Fantasy Statblocks plugin format) | A formatted stat block with clickable ability checks and dice; HP, AC and initiative feed **Add to combat** |
+| A ```` ```statblock ```` code block (the Fantasy Statblocks plugin format) | A formatted stat block with clickable ability checks and dice, and its own **Add to combat** button (wherever it shows: its note, an embed, the side peek). Click again for another copy |
+| `> [!encounter] Title` callouts listing creatures, or an `enemies:` property | One **Add N to combat** button for the whole fight. See [Encounters](#encounters) |
 | Dice like `2d6+3` in any note | Click to roll |
 | A table whose first column header is `d6`, `d20`, `d100`… | **Roll on this table** picks and highlights a row |
 | A folder of notes that each have a `d20: 3` property (like Herbs) | The folder page gets a **Roll d20** button |
@@ -36,6 +37,33 @@ You can import several vaults; switch between them from the dropdown at the top 
 - **Ctrl+.**: Player view on/off.
 - Right panel: **Note** (the side peek), **Combat** (initiative, HP, conditions, drag to reorder; press **N** for next turn), **Sound** (now playing: pause, loop and volume per track), **Dice** (advantage/disadvantage, `4d6kh3`, history) and **Notes** (a scratchpad that saves itself; copy it into your session note afterwards).
 - **Stop all sound**: the speaker button in the top bar.
+
+## Encounters
+Write the fight where you run it, as an encounter callout with one creature per line:
+
+```markdown
+> [!encounter] Stagecoach riders
+> - 4x [[Bandit (mook)]]
+> - [[Bandit captain]]
+> - 2x Coyote
+```
+
+The callout gets an **Add 7 to combat** button (the count is every creature in it). Each one is rolled into the initiative tracker with its own HP and AC, numbered "Bandit (mook) 1", "Bandit (mook) 2" and so on.
+
+- A line is a creature when it links to a note with a statblock or `hp`/`ac` properties. Plain names (`2x Coyote`) work when a note has that name.
+- The count can be written `4x [[Bandit]]`, `[[Bandit]] x4`, `4 [[Bandit]]` or `4× [[Bandit]]`. No count means one.
+- Anything else on the line is left alone, so `- 4x [[Coyote]] (flee after two fall)` is fine. Lines that don't name a creature with stats (party members, places, notes without stats) are skipped.
+- `[!enemies]`, `[!combat]` and `[!fight]` work too. Encounter callouts are DM only: Player view hides them.
+- For a separate encounter note, list the creatures in its properties instead and the note gets an **Add enemies** button:
+
+  ```yaml
+  enemies:
+    - "4x [[Bandit (mook)]]"
+    - "[[Bandit captain]]"
+  ```
+  Quote each line, or Obsidian rewrites the links as a nested list.
+
+`node validate.mjs <note>` warns when an encounter names a note with no stats. The example adventure in `examples/Greenhorn Springs` has an encounter callout for each fight.
 
 ## Player screen (projector or second display)
 The monitor button in the top bar opens a **player screen**: a separate black window that shows only what you send it, so nothing DM-only can end up on it.

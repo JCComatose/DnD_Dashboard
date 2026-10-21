@@ -17,6 +17,9 @@ _A Weird West one-shot. Converted from the original prompt book._
 
 First blood in this fight is a [[Dead Eye (quick-draw mechanic)|Dead Eye]] moment — draw fast. Bandit mooks are CR 1/8, meaning most shots load 5 of 6 chambers.
 
+> [!encounter] Stagecoach riders
+> - 4x [[Bandit (mook)]]
+
 ## The Saloon & Eli's Hook
 
 [[Saloon loop.wav|Saloon loop: piano, low chatter, glasses]] The saloon doors swing easy on their hinges, letting out a wash of warmth, piano notes, and the low hum of conversation. A woman behind the bar doesn't look up from the glass she's wiping, but she clocks you all the same.
@@ -29,6 +32,9 @@ First blood in this fight is a [[Dead Eye (quick-draw mechanic)|Dead Eye]] momen
 
 [[Evening crickets and wind.wav|Evening ambience: crickets, wind, distant coyote yips]] The ride out from town takes you past fenced-off plots and half-built homes, thinning out the further you go. By the time you reach [[Eli's homestead|Eli's land]], the sun's low and orange, throwing long shadows off the fence posts. It's quiet — the kind of quiet that feels less like peace and more like held breath.
 
+> [!encounter] Something at the coop
+> - 4x [[Coyote]] (they break and flee after two fall)
+
 ## The Branch — Wait, Ask, or Track
 
 With the coop dealt with and the claw marks found, the party faces the branch point: wait out another night to catch whatever's hunting the coop, ask around [[Greenhorn Springs|town]] first, or strike out and track it directly. Whichever they choose, the trail leads to [[The den|the den]].
@@ -36,6 +42,10 @@ With the coop dealt with and the claw marks found, the party faces the branch po
 ## The Den & The Reversion
 
 [[Den dripping, low breathing.wav|Den ambience: dripping water, wet earth, low breathing]] The trail — blood, drag marks, broken brush — leads to a low hollow cut into the hillside, half-hidden by roots and hanging brush. The smell hits before anything else: old blood, wet earth, something gone rotten in a way that isn't quite animal. Deeper in the dark, something shifts. Two shapes. Neither one moves like it should.
+
+> [!encounter] The den
+> - [[Caleb]]
+> - Ruth fights beside him but has no stat block; she reverts when Caleb falls.
 
 [[Reversion transformation.wav|A wrenching, reversing transformation]] The moment [[Caleb|Caleb]] falls, something changes in the air — a pressure releasing. Across the den, [[Ruth|Ruth]] freezes mid-motion. When it's over, there's just a terrified, sobbing child where a monster stood a moment ago.
 
@@ -50,5 +60,8 @@ With the coop dealt with and the claw marks found, the party faces the branch po
 [[Waterfall roar (bed).wav|Constant waterfall roar, loud ambient bed]] The roar of falling water swallows every other sound long before you see it — a waterfall crashing down a rocky cut in the hillside, mist hanging thick in the cold air. Behind the curtain of water, barely visible, a darker shape: a gap in the rock, unnatural in its regularity.
 
 Before the cave mouth waits the [[The Hunter's Cairn|Hunter's Cairn]] — three totems, three notches, one answer. [[Head wendigo growl loop.wav|A deep, resonant growl and breathing loop]] marks when the [[The head wendigo|head wendigo]] reveals itself.
+
+> [!encounter] The head wendigo
+> - [[The head wendigo]]
 
 The moment it drops, the cave seems to exhale. Somewhere beyond this chamber, further than should be possible, the same wrenching, reversing transformation ripples outward. Anyone else it ever turned, anywhere, is changing back right now, waking up cold, confused, and human, wherever they happen to be.

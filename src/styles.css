@@ -207,6 +207,7 @@ a.wl.missing { color: var(--missing); border-bottom-style: dashed; cursor: defau
 .callout-content > :last-child { margin-bottom: 4px; }
 .callout.secret { background: var(--secret-bg); border-color: var(--secret-border); }
 .callout.secret .callout-title { color: var(--secret-border); }
+.callout.encounter .callout-title .btn { color: var(--text); font-weight: 500; }
 .callout.readaloud { background: var(--read-bg); border-color: var(--read-border); font-family: var(--serif); font-size: 17px; }
 .callout.readaloud .callout-title { font-family: var(--font); font-size: 15px; color: var(--read-border); }
 .callout[data-type="warning"], .callout[data-type="caution"], .callout[data-type="danger"] { border-color: var(--danger); }
@@ -363,6 +364,7 @@ body.player-safe .callout.secret, body.player-safe .dm-only-block { display: non
 .sb-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .sb-name { font: 700 19px/1.2 var(--serif); }
 .sb-type { font-style: italic; color: var(--text-2); font-size: 13px; }
+.sb-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
 .sb-cr { background: var(--secret-bg); color: var(--secret-border); border-radius: 5px; padding: 0 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .sb-core { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; padding: 6px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .sb-abil { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 8px 0; }

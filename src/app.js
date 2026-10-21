@@ -2,7 +2,7 @@
 (() => {
 'use strict';
 
-const { stripExt, baseName, dirName, extOf, slug, kindOf, parseFrontmatter, SECRET_CALLOUTS, READ_CALLOUTS, asList,
+const { stripExt, baseName, dirName, extOf, slug, kindOf, parseFrontmatter, SECRET_CALLOUTS, READ_CALLOUTS, ENCOUNTER_CALLOUTS, asList,
   splitTarget, SOUND_KEYS, BOOK_TYPES, isBookish, parseYaml, STATBLOCK_RE } = DMVault;
 
 /* ================================================================ utils */
@@ -386,14 +386,20 @@ function postProcess(root, opts) {
     const br = rest.search(/<br\s*\/?>|\n/);
     const title = br >= 0 ? rest.slice(0, br) : rest;
     const after = br >= 0 ? rest.slice(br).replace(/^(<br\s*\/?>|\n)\s*/, '') : '';
-    const kind = SECRET_CALLOUTS.has(type) ? 'secret' : READ_CALLOUTS.has(type) ? 'readaloud' : '';
+    const kind = ENCOUNTER_CALLOUTS.has(type) ? 'secret encounter' : SECRET_CALLOUTS.has(type) ? 'secret' : READ_CALLOUTS.has(type) ? 'readaloud' : '';
     const titleEl = h('div', { class: 'callout-title' }, h('span', { class: 'grow', html: title.trim() || esc(kind === 'secret' ? 'DM only' : titleCase(type)) }));
+    const isEncounter = kind === 'secret encounter';
     const content = h('div', { class: 'callout-content' });
     if (after.trim()) content.append(h('p', { html: after }));
     first.remove();
     content.append(...bq.childNodes);
     const co = h('div', { class: `callout ${kind}${m[2] ? ' foldable' : ''}${m[2] === '-' ? ' folded' : ''}`, 'data-type': type }, titleEl, content);
     if (m[2]) titleEl.addEventListener('click', () => co.classList.toggle('folded'));
+    if (isEncounter) {
+      const foes = encounterFoes(content);
+      const total = foes.reduce((a, f) => a + f.count, 0);
+      if (total) titleEl.append(h('button', { class: 'btn small', title: 'Add ' + foes.map((f) => `${f.count}× ${f.n.name}`).join(', ') + ' to the initiative tracker', onclick: (e) => { e.stopPropagation(); addFoesToCombat(foes); }, html: icon('swords') + ` Add ${total} to combat` }));
+    }
     if (kind === 'readaloud') titleEl.append(h('button', { class: 'btn small', title: 'Show full screen for reading aloud', onclick: (e) => { e.stopPropagation(); present(content.cloneNode(true), title.replace(/<[^>]+>/g, '') || 'Read aloud'); }, html: icon('expand') + ' Present' }));
     bq.replaceWith(co);
   }
@@ -504,7 +510,9 @@ function renderStatblock(sb) {
   const el = h('div', { class: 'statblock' });
   const typeLine = [[sb.size, sb.type, sb.subtype ? `(${sb.subtype})` : null].filter(Boolean).join(' '), sb.alignment].filter(Boolean).join(', ');
   const cr = sb.cr != null && sb.cr !== '' ? (String(sb.cr).match(/^cr/i) ? sb.cr : 'CR ' + sb.cr) : null;
-  el.append(h('div', { class: 'sb-head' }, h('div', { style: { minWidth: 0 } }, sb.name ? h('div', { class: 'sb-name' }, sb.name) : null, typeLine ? h('div', { class: 'sb-type' }, typeLine) : null), cr ? h('span', { class: 'sb-cr' }, cr) : null));
+  el.append(h('div', { class: 'sb-head' }, h('div', { style: { minWidth: 0 } }, sb.name ? h('div', { class: 'sb-name' }, sb.name) : null, typeLine ? h('div', { class: 'sb-type' }, typeLine) : null),
+    h('div', { class: 'sb-side' }, cr ? h('span', { class: 'sb-cr' }, cr) : null,
+      h('button', { class: 'btn small', title: 'Add to the initiative tracker (click again for another)', onclick: () => addStatblockToCombat(sb), html: icon('swords') + ' Add to combat' }))));
   const core = [['AC', sb.ac], ['HP', sb.hp != null ? sb.hp + (sb.hit_dice && !String(sb.hp).includes('(') ? ` (${sb.hit_dice})` : '') : null], ['Speed', sb.speed]].filter(([, v]) => v != null && v !== '');
   if (core.length) el.append(h('div', { class: 'sb-core', html: core.map(([k, v]) => `<span><b>${k}</b> ${esc(v)}</span>`).join('') }));
   const sc = statblockScores(sb);
@@ -1388,12 +1396,15 @@ function renderNoteView(path, anchor) {
   const segs = n.folder ? n.folder.split('/') : [];
   const crumbs = h('div', { class: 'crumbs' }, h('a', { href: '#/home' }, S.campaign.name), segs.map((s, i) => [' / ', h('a', { onclick: () => go('#/folder/' + encodeURIComponent(segs.slice(0, i + 1).join('/'))) }, s)]));
   const pinned = S.ui.pinned.includes(path);
-  const st = ['pc', 'npc', 'monster', 'creature', 'villain', 'merchant'].includes(n.type) ? statsOf(n) : null;
+  const st = ['pc', 'npc', 'monster', 'creature', 'villain', 'merchant'].includes(n.type) || hasStatblock(n) ? statsOf(n) : null;
+  const foes = propFoes(n);
+  const foeCount = foes.reduce((a, f) => a + f.count, 0);
   const actions = h('div', { class: 'note-actions' },
     soundButtonsFor(n),
     isBookish(n) ? h('button', { class: 'btn primary', title: 'Section-by-section view with names opening beside the text', onclick: () => runBook(path), html: icon('play') + ' Run as prompt book' }) : null,
     n.type === 'script' ? h('button', { class: 'btn', onclick: () => presentNote(path), html: icon('expand') + ' Present' }) : null,
     st && (st.hp != null || st.ac != null) ? h('button', { class: 'btn', title: 'Add to the initiative tracker', onclick: () => addToCombat(n), html: icon('swords') + ' Add to combat' }) : null,
+    foeCount ? h('button', { class: 'btn', title: 'Add ' + foes.map((f) => `${f.count}× ${f.n.name}`).join(', ') + ' to the initiative tracker', onclick: () => addFoesToCombat(foes), html: icon('swords') + ` Add enemies (${foeCount})` }) : null,
     h('button', { class: 'btn icon' + (pinned ? ' on' : ''), title: pinned ? 'Unpin' : 'Pin to the top of the sidebar', html: icon('pin'), onclick: () => { S.ui.pinned = pinned ? S.ui.pinned.filter((p) => p !== path) : [...S.ui.pinned, path]; saveUI(); renderTree(); renderNoteView(path); } }));
 
   const hide = new Set(['tags', 'aliases', 'alias', 'cssclasses', 'cssclass', 'publish', 'position']);
@@ -1572,14 +1583,81 @@ function addCombatant(o) {
   sortCombat(); if (!c.turn && c.list.length) c.turn = null;
   saveUI(); S.settings.right = true; S.settings.rpTab = 'combat'; saveSettings(); renderChrome();
 }
+// Pushes one monster, numbering copies: a second Goblin turns the first into "Goblin 1" and arrives as "Goblin 2".
+function pushFoe(name, o) {
+  const list = combat().list;
+  const twins = list.filter((x) => !x.pc && (x.name === name || x.name.startsWith(name + ' ') && /^\d+$/.test(x.name.slice(name.length + 1))));
+  if (twins.length === 1 && twins[0].name === name) twins[0].name = name + ' 1';
+  const next = twins.length ? Math.max(...twins.map((x) => +x.name.slice(name.length + 1) || 1)) + 1 : 0;
+  list.push({ id: Math.random().toString(36).slice(2, 9), conds: [], name: next ? `${name} ${next}` : name, init: rand(20) + (o.bonus ?? 0), maxHp: o.hp, ...o });
+}
+function foeStats(n) { const st = statsOf(n); return { notePath: n.path, hp: st.hp, ac: st.ac, bonus: st.init ?? 0 }; }
+function showCombat() { sortCombat(); saveUI(); S.settings.right = true; S.settings.rpTab = 'combat'; saveSettings(); renderChrome(); }
 function addToCombat(n) {
-  const st = statsOf(n);
-  const isPc = n.type === 'pc';
-  const twins = combat().list.filter((x) => x.notePath === n.path);
-  const same = twins.length;
-  if (!isPc && same === 1 && twins[0].name === n.name) twins[0].name = n.name + ' 1';
-  addCombatant({ name: n.name + (!isPc && same ? ' ' + (same + 1) : ''), notePath: n.path, hp: st.hp, maxHp: st.hp, ac: st.ac, bonus: st.init ?? 0, init: isPc ? null : rand(20) + (st.init ?? 0), pc: isPc });
+  if (n.type === 'pc') {
+    const st = statsOf(n);
+    addCombatant({ name: n.name, notePath: n.path, hp: st.hp, maxHp: st.hp, ac: st.ac, bonus: st.init ?? 0, init: null, pc: true });
+  } else { pushFoe(n.name, foeStats(n)); showCombat(); }
   toast(`${n.name} added to combat`);
+}
+// A statblock rendered anywhere (its own note, an embed, inline in an adventure). Prefer the note it belongs to so the tracker can peek it.
+function addStatblockToCombat(sb) {
+  const p = sb.name ? resolve(String(sb.name)) : null;
+  const n = p && S.notes.get(p);
+  if (n && n.type !== 'pc' && hasStatblock(n) && String(statblockOf(n).name ?? '') === String(sb.name)) return addToCombat(n);
+  const sc = statblockScores(sb);
+  const name = String(sb.name || 'Creature');
+  pushFoe(name, { hp: lead(sb.hp), ac: lead(sb.ac), bonus: lead(sb.initiative ?? sb.init) ?? (sc.dex != null ? modOf(sc.dex) : 0) });
+  showCombat(); toast(`${name} added to combat`);
+}
+function addFoesToCombat(foes) {
+  let total = 0;
+  for (const f of foes) for (let i = 0; i < f.count; i++) { pushFoe(f.n.name, foeStats(f.n)); total++; }
+  showCombat();
+  toast(`Added ${foes.map((f) => `${f.count}× ${esc(f.n.name)}`).join(', ')}`, 3000, true);
+}
+// Encounter lists: one creature per line, "4x [[Bandit]]", "[[Bandit]] x4", "4 [[Bandit]]" or just "[[Bandit]]".
+// Plain names ("2x Coyote") work too when a note has that name. Only notes with HP or AC count, so places and PCs are skipped.
+function isFoe(n) { if (!n || n.type === 'pc') return false; const st = statsOf(n); return st.hp != null || st.ac != null; }
+function countIn(text) {
+  const m = /(?:^|[\s(])(\d+)\s*[x×](?=[\s)\[]|$)|(?:^|\s)[x×]\s*(\d+)\b|^\s*(\d+)\s+\S/i.exec(text);
+  return m ? Math.max(1, Math.min(30, +(m[1] || m[2] || m[3]))) : 1;
+}
+function foesFromLines(lines) {
+  const out = new Map();
+  for (const { text, paths } of lines) {
+    const t = text.replace(/^\s*[-*+]\s*/, '').trim();
+    if (!t) continue;
+    let notes = paths.map((p) => S.notes.get(p)).filter(isFoe);
+    if (!paths.length) {
+      const name = t.replace(/(?:^|\s)\d+\s*[x×](?=\s|$)|(?:^|\s)[x×]\s*\d+\b|^\d+\s+/gi, ' ').replace(/[:,(].*$/, '').trim();
+      const n = name && S.notes.get(resolve(name));
+      notes = isFoe(n) ? [n] : [];
+    }
+    for (const n of notes) { const f = out.get(n.path) || { n, count: 0 }; f.count += countIn(t); out.set(n.path, f); }
+  }
+  return [...out.values()];
+}
+function encounterFoes(content) {
+  const lines = [];
+  const lis = $$('li', content);
+  const blocks = lis.length ? lis : $$('p', content);
+  for (const b of blocks) {
+    const parts = lis.length ? [b.innerHTML.split(/<ul|<ol/)[0]] : b.innerHTML.split(/<br\s*\/?>/);
+    for (const html of parts) {
+      const tmp = h('div', { html });
+      lines.push({ text: tmp.textContent, paths: $$('a.wl[data-path]', tmp).map((a) => a.dataset.path).filter(Boolean) });
+    }
+  }
+  return foesFromLines(lines);
+}
+function propFoes(n) {
+  const v = n.fm.enemies;
+  if (v == null || v === '') return [];
+  return foesFromLines(asList(Array.isArray(v) ? v : [v]).filter((x) => typeof x === 'string').map((x) => ({
+    text: x.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, a, b) => b || a),
+    paths: [...x.matchAll(/\[\[([^\]|#]+)/g)].map((m) => resolve(m[1])).filter(Boolean),
+  })));
 }
 function addPartyToCombat() {
   const have = new Set(combat().list.map((x) => x.notePath));
