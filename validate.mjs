@@ -202,6 +202,23 @@ function check(t) {
       else cues.push({ line: 1, path: p, label: null, ch: V.channelOf(p, ix.files.get(p).size), prop: k });
     }
   }
+  // encounter callouts: every creature line needs a note with stats, or "Add to combat" skips it
+  if (linksChecked) for (const c of callouts.filter((c) => V.ENCOUNTER_CALLOUTS.has(c.type))) {
+    let foes = 0;
+    const ls = masked.split('\n');
+    for (let i = c.line - fmLines; i < ls.length && /^\s*>/.test(ls[i]); i++) {
+      for (const m of ls[i].matchAll(/\[\[([^\]\n]+?)\]\]/g)) {
+        const p = V.resolveIn(ix, V.splitTarget(m[1]).file);
+        const t = p && ix.notes.get(p);
+        if (!t) continue; // missing links are reported above
+        const stats = V.STATBLOCK_RE.test(t.body) || ['hp', 'max_hp', 'ac', 'armor_class'].some((k) => t.fm[k] != null && t.fm[k] !== '');
+        if (t.type === 'pc') warn(fmLines + i + 1, `"${t.name}" is a party member, so the encounter's Add to combat button skips it.`);
+        else if (!stats) warn(fmLines + i + 1, `"${t.name}" has no statblock or hp/ac properties, so the encounter's Add to combat button skips it.`);
+        else foes++;
+      }
+    }
+    if (!foes) warn(c.line, `Encounter "${c.title || c.type}" lists no creatures with stats, so it gets no Add to combat button. List them like "- 4x [[Bandit]]".`);
+  }
   // text that runs on into the quote/callout above it
   const ls = masked.split('\n');
   for (let i = 1; i < ls.length; i++) {
